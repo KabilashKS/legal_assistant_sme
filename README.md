@@ -17,7 +17,7 @@ Quick Start
   - Any queries in installation refer this document page:
         - https://docs.astral.sh/uv/getting-started/installation/ 
 
-        
+
 ### Step-1
 
 ### Installation
@@ -102,3 +102,60 @@ Step 4: Take Action
     Use negotiation strategies provided
 
     Consult with legal professionals using the analysis
+
+
+### Technical Details
+
+#Document Processing
+
+# Key components:
+- PyPDF2: PDF text extraction
+- python-docx: Word document processing
+- Custom clause segmentation algorithms
+- Text cleaning and normalization
+
+# AI Analysis Engine
+
+# Risk detection patterns:
+- Foreign jurisdiction detection
+- Unlimited liability identification
+- Arbitrary termination flags
+- Indefinite confidentiality alerts
+- Unreasonable penalty clause detection
+
+
+### Security & Privacy
+
+## Data Protection
+
+    ✅ No contract data stored permanently
+
+    ✅ All processing happens in memory
+
+    ✅ Optional OpenAI API with user consent
+
+    ✅ No third-party data sharing
+
+## Best Practices
+
+    Always use HTTPS in production
+
+    Keep API keys secure in environment variables
+
+    Regular dependency updates
+
+    Input validation and sanitization
+
+## Deployment
+
+## Deploy on Streamlit Cloud
+
+    Push your code to GitHub
+
+    Visit share.streamlit.io
+
+    Connect your repository
+
+    Set environment variables
+
+    Deploy!
