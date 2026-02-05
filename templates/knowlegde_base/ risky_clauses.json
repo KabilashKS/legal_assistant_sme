@@ -1,0 +1,9 @@
+{
+  "penalty_clauses": [
+    {
+      "pattern": "penalty.*exceeds.*10%.*value",
+      "description": "Penalty exceeding 10% of contract value may be punitive",
+      "suggestion": "Cap penalties at reasonable amount or actual damages"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+[project]
+name = "legal-assistant-sme"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.77.1",
+    "fpdf>=1.7.2",
+    "fpdf2==2.7.5",
+    "jinja2==3.1.2",
+    "langchain==0.0.340",
+    "nltk==3.8.1",
+    "numpy>=1.26.4",
+    "openai==0.28.0",
+    "pandas>=2.3.3",
+    "pypdf2==3.0.1",
+    "python-docx==1.1.0",
+    "python-dotenv==1.0.0",
+    "python-multipart==0.0.6",
+    "spacy==3.7.2",
+    "streamlit==1.28.0",
+]
