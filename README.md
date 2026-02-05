@@ -13,7 +13,11 @@ Quick Start
 
   - Once the download was complete and then initiate the uv by this command inside your project directory:
         - uv init     
+  
+  - Any queries in installation refer this document page:
+        - https://docs.astral.sh/uv/getting-started/installation/ 
 
+        
 ### Step-1
 
 ### Installation
