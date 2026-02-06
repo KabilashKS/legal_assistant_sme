@@ -15,6 +15,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # Try to import LLMHandler from your file
 try:
     from llm_handler import LLMHandler, LLMConfig  # Your file name
+    from modules.nlp_pipeline import NLPProcessor  # Import multilingual NLP
 except ImportError:
     # Create a simple fallback if import fails
     class LLMHandler:
@@ -23,6 +24,13 @@ except ImportError:
         
         def explain_clause(self, clause_text):
             return f"This clause appears to be standard. For detailed analysis, add OpenAI API key."
+    
+    class NLPProcessor:
+        def __init__(self):
+            pass
+        
+        def generate_simple_english_summary(self, text):
+            return "This clause requires professional legal review."
 
 # Page configuration
 st.set_page_config(
@@ -40,6 +48,10 @@ if 'clauses' not in st.session_state:
     st.session_state.clauses = []
 if 'detailed_report' not in st.session_state:
     st.session_state.detailed_report = None
+if 'language_analysis' not in st.session_state:
+    st.session_state.language_analysis = None
+if 'normalization_enabled' not in st.session_state:
+    st.session_state.normalization_enabled = True
 
 # Custom CSS for better UI
 st.markdown("""
@@ -124,6 +136,7 @@ class DocumentProcessor:
 # Initialize modules
 doc_processor = DocumentProcessor()
 llm_handler = LLMHandler(use_mock=True)  # Use mock for demo
+nlp_processor = NLPProcessor()  # Initialize multilingual NLP processor
 
 # Streamlit UI
 st.title("⚖️ Legal Assistant for Small & Medium Businesses")
@@ -132,6 +145,26 @@ st.write("AI-powered contract analysis for Indian SMEs")
 # Sidebar
 with st.sidebar:
     st.title("📋 Legal Assistant")
+    
+    st.markdown("---")
+    
+    # Language Processing Options
+    st.subheader("🌐 Language Options")
+    
+    # Enable/Disable Hindi normalization
+    normalization_enabled = st.checkbox(
+        "Enable Hindi→English Normalization",
+        value=st.session_state.normalization_enabled,
+        help="Automatically normalize Hindi text for better analysis"
+    )
+    st.session_state.normalization_enabled = normalization_enabled
+    
+    # Language preference for output
+    output_language = st.selectbox(
+        "Output Language",
+        ["English (Simple Business)", "English (Detailed)", "Bilingual"],
+        help="Choose the language style for analysis output"
+    )
     
     st.markdown("---")
     
@@ -177,16 +210,34 @@ with st.sidebar:
     if contract_text:
         st.session_state.contract_text = contract_text
         
+        # Perform language analysis
+        if hasattr(nlp_processor, 'process_multilingual_text'):
+            language_analysis = nlp_processor.process_multilingual_text(contract_text)
+            st.session_state.language_analysis = language_analysis
+            
+            # Show language detection results
+            if language_analysis["is_multilingual"]:
+                st.success(f"🌐 {language_analysis['language_analysis']['primary_language'].title()} text detected! {language_analysis['language_analysis']['hindi_ratio']*100:.1f}% Hindi content")
+            else:
+                st.info(f"📝 {language_analysis['language_analysis']['primary_language'].title()} text detected")
+        
         # Simple clause segmentation
         paragraphs = [p.strip() for p in contract_text.split('\n\n') if p.strip()]
         clauses = []
         for i, para in enumerate(paragraphs[:15]):
             if para and len(para) > 20:
+                # Generate simple English summary for each clause
+                if st.session_state.normalization_enabled and hasattr(nlp_processor, 'generate_simple_english_summary'):
+                    simple_summary = nlp_processor.generate_simple_english_summary(para)
+                else:
+                    simple_summary = "Clause analysis requires language processing to be enabled."
+                
                 clauses.append({
                     "clause_id": i + 1,
                     "title": f"Clause {i + 1}",
                     "text": para[:500],
-                    "full_text": para
+                    "full_text": para,
+                    "simple_summary": simple_summary
                 })
         st.session_state.clauses = clauses
     
@@ -204,9 +255,14 @@ with st.sidebar:
     
     st.markdown("---")
     
-    # Sample contract
-    if st.button("📋 Load Sample Contract", use_container_width=True):
-        sample_text = """EMPLOYMENT AGREEMENT
+    # Sample contracts
+    st.markdown("---")
+    
+    sample_col1, sample_col2 = st.columns(2)
+    
+    with sample_col1:
+        if st.button("📋 Load English Sample", use_container_width=True):
+            sample_text = """EMPLOYMENT AGREEMENT
 
 This Employment Agreement is made on January 15, 2024 between:
 
@@ -237,21 +293,71 @@ Employee's liability to Company shall be unlimited for any breach.
 
 6. AUTO-RENEWAL
 This Agreement shall automatically renew for additional one-year terms without notice."""
-        
-        st.session_state.contract_text = sample_text
-        paragraphs = [p.strip() for p in sample_text.split('\n\n') if p.strip()]
-        clauses = []
-        for i, para in enumerate(paragraphs):
-            if para and len(para) > 20:
-                clauses.append({
-                    "clause_id": i + 1,
-                    "title": f"Clause {i + 1}",
-                    "text": para[:500],
-                    "full_text": para
-                })
-        st.session_state.clauses = clauses
-        st.success("Sample contract loaded!")
-        st.rerun()
+            
+            st.session_state.contract_text = sample_text
+            paragraphs = [p.strip() for p in sample_text.split('\n\n') if p.strip()]
+            clauses = []
+            for i, para in enumerate(paragraphs):
+                if para and len(para) > 20:
+                    clauses.append({
+                        "clause_id": i + 1,
+                        "title": f"Clause {i + 1}",
+                        "text": para[:500],
+                        "full_text": para,
+                        "simple_summary": "Standard employment clause requiring review."
+                    })
+            st.session_state.clauses = clauses
+            st.success("English sample contract loaded!")
+            st.rerun()
+    
+    with sample_col2:
+        if st.button("🌐 Load Bilingual Sample", use_container_width=True):
+            sample_text = """रोजगारी समझौता - EMPLOYMENT AGREEMENT
+
+यह समझौता 15 जनवरी 2024 को बनाया गया है:
+This Agreement is made on January 15, 2024 between:
+
+टेक इनोवेशन प्राइवेट लिमिटेड - TECH INNOVATION PRIVATE LIMITED
+पता: बेंगलुरु, भारत - Address: Bangalore, India
+("कंपनी" - "the Company")
+
+और - AND
+
+अमित कुमार - AMIT KUMAR
+पता: पुणे, भारत - Address: Pune, India
+("कर्मचारी" - "the "Employee")
+
+1. पद और कर्तव्य - POSITION AND DUTIES
+कर्मचारी वरिष्ठ डेवलपर के रूप में कार्य करेगा। The Employee shall serve as Senior Developer.
+कंपनी बिना कारण के अपने एकतरफा विवेक से समाप्त कर सकती है। Company may terminate at its sole discretion.
+
+2. वेतन - COMPENSATION
+मासिक वेतन: ₹75,000। Monthly salary: ₹75,000.
+देरी से भुगतान पर 5% प्रतिमाह जुर्माना। Late payment penalty: 5% per month.
+
+3. गोपनीयता - CONFIDENTIALITY
+कर्मचारी सभी कंपनी जानकारी की गोपनीयता अनिश्चित काल के लिए बनाए रखेगा।
+Employee shall maintain confidentiality indefinitely.
+
+4. अधिकार क्षेत्र - JURISDICTION
+किसी भी विवाद पर सिंगापुर के न्यायालयों का अनन्य अधिकार क्षेत्र होगा।
+Any disputes shall be subject to exclusive jurisdiction of Singapore courts."""
+            
+            st.session_state.contract_text = sample_text
+            paragraphs = [p.strip() for p in sample_text.split('\n\n') if p.strip()]
+            clauses = []
+            for i, para in enumerate(paragraphs):
+                if para and len(para) > 20:
+                    clauses.append({
+                        "clause_id": i + 1,
+                        "title": f"Clause {i + 1}",
+                        "text": para[:500],
+                        "full_text": para,
+                        "simple_summary": "Bilingual clause with Hindi and English text."
+                    })
+            st.session_state.clauses = clauses
+            st.success("Bilingual sample contract loaded!")
+            st.rerun()
     
     st.markdown("---")
     st.info("💡 **Tip:** Start with the sample contract to see how it works.")
@@ -263,6 +369,44 @@ with tab1:
     st.header("Contract Overview")
     
     if st.session_state.contract_text:
+        # Language Analysis Section
+        if st.session_state.language_analysis:
+            st.subheader("🌐 Language Analysis")
+            lang_data = st.session_state.language_analysis
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric(
+                    "Primary Language", 
+                    lang_data["language_analysis"]["primary_language"].title()
+                )
+            
+            with col2:
+                if lang_data["language_analysis"]["hindi_ratio"] > 0:
+                    st.metric(
+                        "Hindi Content", 
+                        f"{lang_data['language_analysis']['hindi_ratio']*100:.1f}%"
+                    )
+                else:
+                    st.metric("Hindi Content", "0%")
+            
+            with col3:
+                st.metric(
+                    "Multilingual", 
+                    "Yes" if lang_data["is_multilingual"] else "No"
+                )
+            
+            # Show translated terms if any
+            if lang_data["translated_terms"]:
+                with st.expander("🔄 Hindi Terms Translated"):
+                    for hindi_term, english_term in lang_data["translated_terms"].items():
+                        st.write(f"**{hindi_term}** → {english_term}")
+        
+        st.markdown("---")
+        
+        # Contract Metrics
+        st.subheader("📊 Contract Metrics")
         col1, col2, col3 = st.columns(3)
         
         with col1:
@@ -276,7 +420,7 @@ with tab1:
             # Check for risk indicators
             text_lower = st.session_state.contract_text.lower()
             risk_count = 0
-            if 'sole discretion' in text_lower:
+            if 'sole discretion' in text_lower or 'एकतरफा विवेक' in text_lower:
                 risk_count += 1
             if 'indefinite' in text_lower and 'confidential' in text_lower:
                 risk_count += 1
@@ -291,7 +435,18 @@ with tab1:
         with st.expander("📄 View Contract Text"):
             st.text(st.session_state.contract_text[:1500] + ("..." if len(st.session_state.contract_text) > 1500 else ""))
         
+        # Simple Summaries Section
+        if st.session_state.normalization_enabled and st.session_state.clauses:
+            st.subheader("📝 Simple English Summaries")
+            for clause in st.session_state.clauses[:5]:  # Show first 5 clauses
+                with st.expander(f"Clause {clause['clause_id']}: {clause['title']}", expanded=False):
+                    st.write("**Original Text:**")
+                    st.text(clause['text'])
+                    st.write("**Simple English Summary:**")
+                    st.info(clause.get('simple_summary', 'Summary not available'))
+        
         # Analyze button
+        st.markdown("---")
         if st.button("🔍 Run AI Analysis", type="primary", use_container_width=True):
             with st.spinner("Analyzing contract with AI..."):
                 try:
